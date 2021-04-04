@@ -1,0 +1,27 @@
+{
+  "name": "hamaca",
+  "version": "0.0.1",
+  "description": "A data-reactive library",
+  "scripts": {
+    "test": "jest",
+    "prebuild": "npm test && rimraf dist",
+    "build": "rollup -c"
+  },
+  "keywords": [
+    "JavaScript",
+    "dom"
+  ],
+  "author": "daniel.fife@gmail.com",
+  "license": "ISC",
+  "main": "index.js",
+  "devDependencies": {
+    "@babel/core": "^7.13.14",
+    "@babel/preset-env": "^7.13.12",
+    "@rollup/plugin-babel": "^5.3.0",
+    "@rollup/plugin-commonjs": "^18.0.0",
+    "jest": "^26.6.3",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.44.0",
+    "rollup-plugin-terser": "^7.0.2"
+  }
+}
