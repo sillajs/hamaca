@@ -8,9 +8,11 @@ A data-reactive library
 ### Usage
     import $_ from 'hamaca';
 
-    const name = $_('hamaca');
-    name.map(name => name.toUpperCase()).watch(name => console.log(`Hola, ${name}`));
-    name.set('hamaca.js')
+    const name = $_('World');
+    const message = name.map(name => `Hello, ${name}`);
+    console.log(message.get());
+    name.set('hamaca.js');
+    console.log(message.get());
 
 ### Methods
 #### get
