@@ -32,6 +32,11 @@ describe('watch', () => {
     [2, 3].forEach(v => n.set(v));
     expect(values).toEqual([1, 2, 3]);
   });
+
+  it('returns self', () => {
+    const n = $_(1);
+    expect(n.watch(()=>{})).toBe(n);
+  });
 });
 
 describe('map', () => {

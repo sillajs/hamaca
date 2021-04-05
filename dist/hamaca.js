@@ -229,6 +229,7 @@ var $_ = (function () {
         sync(function () {
           fn(_this4.get());
         });
+        return this; // Allows for chaining
       }
     }, {
       key: "_set",

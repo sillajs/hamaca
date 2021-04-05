@@ -50,6 +50,7 @@ class Data {
     sync(() => {
       fn(this.get());
     });
+    return this;  // Allows for chaining
   }
   _set(data) {
     this._data = data;
