@@ -1,6 +1,10 @@
 var $ = (function () {
   'use strict';
 
+  const isData = value => value instanceof Data;
+  const ensure = value => isData(value) ? value : new Data(value);
+  const getAll =  datas => datas.map(data => data.get());
+  const ensureAll = datas => datas.map(data => ensure(data));
   const calc = fn => {
     const data = new Data();
     sync(() => {
@@ -9,13 +13,9 @@ var $ = (function () {
     });
     return data;
   };
-  const ensure = data => {
-    if (data instanceof Data) return data;
-    return new Data(data);
-  };
 
   const syncStack = [];
-
+  const notifySyncs = data => [...data._obs].forEach(sync => sync());
   const sync = (perform, state) => {
     const deps = [];
     const update = () => {
@@ -29,11 +29,6 @@ var $ = (function () {
     };
     update();
   };
-
-  const notifySyncs = data => {
-    [...data._obs].forEach(sync => sync());
-  };
-
 
   class Data {
     constructor(value) {
@@ -50,9 +45,7 @@ var $ = (function () {
       return calc(() => fn(this.get()));
     }
     watch(fn) {
-      sync(() => {
-        fn(this.get());
-      });
+      sync(() => fn(this.get()));
     }
   }
 
@@ -70,17 +63,10 @@ var $ = (function () {
     }
   }
 
-  const $ = (data, freeze = false) =>
-      freeze === true ? new Data(data) : new ModifiableData(data);
-
-  Object.assign($, {
-    ensure, calc, sync,
-    getAll: datas => datas.map(data => data.get()),
-    ensureAll: datas => datas.map(data => ensure(data)),
-    isData: v => v instanceof Data
-  });
-
-  var hamaca = $;
+  const create = (value, freeze = false) =>
+      freeze === true ? new Data(value) : new ModifiableData(value);
+  var hamaca = Object.assign(create,
+      {ensure, calc, isData, sync, getAll, ensureAll});
 
   return hamaca;
 

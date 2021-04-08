@@ -1,3 +1,8 @@
+
+const isData = value => value instanceof Data;
+const ensure = value => isData(value) ? value : new Data(value);
+const getAll =  datas => datas.map(data => data.get());
+const ensureAll = datas => datas.map(data => ensure(data));
 const calc = fn => {
   const data = new Data();
   sync(() => {
@@ -6,13 +11,9 @@ const calc = fn => {
   });
   return data;
 };
-const ensure = data => {
-  if (data instanceof Data) return data;
-  return new Data(data);
-}
 
 const syncStack = [];
-
+const notifySyncs = data => [...data._obs].forEach(sync => sync());
 const sync = (perform, state) => {
   const deps = [];
   const update = () => {
@@ -26,11 +27,6 @@ const sync = (perform, state) => {
   };
   update();
 };
-
-const notifySyncs = data => {
-  [...data._obs].forEach(sync => sync());
-};
-
 
 class Data {
   constructor(value) {
@@ -47,9 +43,7 @@ class Data {
     return calc(() => fn(this.get()));
   }
   watch(fn) {
-    sync(() => {
-      fn(this.get());
-    });
+    sync(() => fn(this.get()));
   }
 }
 
@@ -67,14 +61,7 @@ class ModifiableData extends Data {
   }
 }
 
-const $ = (data, freeze = false) =>
-    freeze === true ? new Data(data) : new ModifiableData(data);
-
-Object.assign($, {
-  ensure, calc, sync,
-  getAll: datas => datas.map(data => data.get()),
-  ensureAll: datas => datas.map(data => ensure(data)),
-  isData: v => v instanceof Data
-});
-
-module.exports = $;
+const create = (value, freeze = false) =>
+    freeze === true ? new Data(value) : new ModifiableData(value);
+module.exports = Object.assign(create,
+    {ensure, calc, isData, sync, getAll, ensureAll});

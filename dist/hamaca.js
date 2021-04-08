@@ -135,6 +135,26 @@ var $ = (function () {
     throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
 
+  var isData = function isData(value) {
+    return value instanceof Data;
+  };
+
+  var ensure = function ensure(value) {
+    return isData(value) ? value : new Data(value);
+  };
+
+  var getAll = function getAll(datas) {
+    return datas.map(function (data) {
+      return data.get();
+    });
+  };
+
+  var ensureAll = function ensureAll(datas) {
+    return datas.map(function (data) {
+      return ensure(data);
+    });
+  };
+
   var calc = function calc(fn) {
     var data = new Data();
     sync(function () {
@@ -144,12 +164,13 @@ var $ = (function () {
     return data;
   };
 
-  var ensure = function ensure(data) {
-    if (data instanceof Data) return data;
-    return new Data(data);
-  };
-
   var syncStack = [];
+
+  var notifySyncs = function notifySyncs(data) {
+    return _toConsumableArray(data._obs).forEach(function (sync) {
+      return sync();
+    });
+  };
 
   var sync = function sync(perform, state) {
     var deps = [];
@@ -167,12 +188,6 @@ var $ = (function () {
     };
 
     update();
-  };
-
-  var notifySyncs = function notifySyncs(data) {
-    _toConsumableArray(data._obs).forEach(function (sync) {
-      return sync();
-    });
   };
 
   var Data = /*#__PURE__*/function () {
@@ -209,7 +224,7 @@ var $ = (function () {
         var _this2 = this;
 
         sync(function () {
-          fn(_this2.get());
+          return fn(_this2.get());
         });
       }
     }]);
@@ -245,30 +260,19 @@ var $ = (function () {
     return ModifiableData;
   }(Data);
 
-  var $ = function $(data) {
+  var create = function create(value) {
     var freeze = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-    return freeze === true ? new Data(data) : new ModifiableData(data);
+    return freeze === true ? new Data(value) : new ModifiableData(value);
   };
 
-  Object.assign($, {
+  var hamaca = Object.assign(create, {
     ensure: ensure,
     calc: calc,
+    isData: isData,
     sync: sync,
-    getAll: function getAll(datas) {
-      return datas.map(function (data) {
-        return data.get();
-      });
-    },
-    ensureAll: function ensureAll(datas) {
-      return datas.map(function (data) {
-        return ensure(data);
-      });
-    },
-    isData: function isData(v) {
-      return v instanceof Data;
-    }
+    getAll: getAll,
+    ensureAll: ensureAll
   });
-  var hamaca = $;
 
   return hamaca;
 
