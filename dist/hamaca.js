@@ -135,14 +135,11 @@ var $ = (function () {
     throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
 
-  var sync = function sync(fn) {
-    return new Sync(fn)._update();
-  };
-
   var calc = function calc(fn) {
-    var data = new Data(undefined);
+    var data = new Data();
     sync(function () {
-      return data._set(fn());
+      data._ = fn();
+      notifySyncs(data);
     });
     return data;
   };
@@ -154,39 +151,36 @@ var $ = (function () {
 
   var syncStack = [];
 
-  var Sync = /*#__PURE__*/function () {
-    function Sync(fn) {
-      _classCallCheck(this, Sync);
+  var sync = function sync(perform, state) {
+    var deps = [];
 
-      this.fn = fn;
-      this.deps = [];
-    }
+    var update = function update() {
+      if (state && !state.active) return;
+      deps.splice(0, deps.length).forEach(function (data) {
+        data._obs.splice(data._obs.indexOf(update), 1);
+      });
+      syncStack.unshift(deps);
+      perform();
+      syncStack.shift().forEach(function (data) {
+        return data._obs.push(update);
+      });
+    };
 
-    _createClass(Sync, [{
-      key: "_update",
-      value: function _update() {
-        var _this = this;
+    update();
+  };
 
-        this.deps.splice(0, this.deps.length).forEach(function (data) {
-          data._syncs.splice(data._syncs.indexOf(_this), 1);
-        });
-        syncStack.unshift(this.deps);
-        this.fn();
-        syncStack.shift().forEach(function (data) {
-          return data._syncs.push(_this);
-        });
-      }
-    }]);
-
-    return Sync;
-  }();
+  var notifySyncs = function notifySyncs(data) {
+    _toConsumableArray(data._obs).forEach(function (sync) {
+      return sync();
+    });
+  };
 
   var Data = /*#__PURE__*/function () {
-    function Data(data) {
+    function Data(value) {
       _classCallCheck(this, Data);
 
-      this._data = data;
-      this._syncs = [];
+      this._ = value;
+      this._obs = [];
     }
 
     _createClass(Data, [{
@@ -198,52 +192,26 @@ var $ = (function () {
           syncStack[0].push(this);
         }
 
-        return this._data;
+        return this._;
       }
     }, {
-      key: "map",
-      value: function map(fn) {
-        var _this2 = this;
+      key: "to",
+      value: function to(fn) {
+        var _this = this;
 
         return calc(function () {
-          return fn(_this2.get());
-        });
-      }
-    }, {
-      key: "mapIf",
-      value: function mapIf(test, fn) {
-        var _this3 = this;
-
-        test = ensure(test);
-        return calc(function () {
-          var data = _this3.get();
-
-          return test.get() ? fn(data) : data;
+          return fn(_this.get());
         });
       }
     }, {
       key: "watch",
       value: function watch(fn) {
-        var _this4 = this;
+        var _this2 = this;
 
         sync(function () {
-          fn(_this4.get());
+          fn(_this2.get());
         });
         return this; // Allows for chaining
-      }
-    }, {
-      key: "_set",
-      value: function _set(data) {
-        this._data = data;
-
-        this._modified();
-      }
-    }, {
-      key: "_modified",
-      value: function _modified() {
-        _toConsumableArray(this._syncs).forEach(function (sync) {
-          return sync._update();
-        });
       }
     }]);
 
@@ -263,15 +231,15 @@ var $ = (function () {
 
     _createClass(ModifiableData, [{
       key: "set",
-      value: function set(data) {
-        this._set(data);
+      value: function set(value) {
+        this._ = value;
+        notifySyncs(this);
       }
     }, {
       key: "modify",
       value: function modify(fn) {
-        fn(this._data);
-
-        this._modified();
+        fn(this._);
+        notifySyncs(this);
       }
     }]);
 

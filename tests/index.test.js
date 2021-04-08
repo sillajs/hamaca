@@ -42,7 +42,7 @@ describe('watch', () => {
 describe('map', () => {
   it('maps data', () => {
     const n = $_(2);
-    const squared = n.map(n => n * n);
+    const squared = n.to(n => n * n);
     expect(squared.get()).toBe(4);
     n.set(3);
     expect(squared.get()).toBe(9);
@@ -52,7 +52,7 @@ describe('map', () => {
 
   it('maps mapped data', () => {
     const n = $_(2);
-    const squaredPlus1 = n.map(n => n * n).map(n => n + 1);
+    const squaredPlus1 = n.to(n => n * n).to(n => n + 1);
     expect(squaredPlus1.get()).toBe(5);
     n.set(3);
     expect(squaredPlus1.get()).toBe(10);
@@ -60,19 +60,6 @@ describe('map', () => {
     expect(squaredPlus1.get()).toBe(17);
   });
 });
-
-describe('mapIf', () => {
-  it('maps based on condition', () => {
-    const items = $_([1,2,3,4,5]);
-    const flag = $_(false);
-    const filtered = items.mapIf(flag, items => items.filter(n => n % 2));
-    expect(filtered.get()).toEqual([1,2,3,4,5]);
-    flag.set(true);
-    expect(filtered.get()).toEqual([1,3,5]);
-    flag.set(false);
-    expect(filtered.get()).toEqual([1,2,3,4,5]);
-  });
-})
 
 describe('$_.ensure', () => {
   it('noop when already data', () => {

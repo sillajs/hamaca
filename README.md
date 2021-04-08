@@ -9,14 +9,14 @@ A data-reactive library
     import $ from 'hamaca';
 
     const name = $('World');
-    const message = name.map(name => `Hello, ${name}`);
+    const message = name.to(name => `Hello, ${name}`);
     console.log(message.get());
     name.set('hamaca.js');
     console.log(message.get());
 
 ### Methods
 #### get
-Returns the current data's value. If within a syncable function (i.e. `map`, `watch`, `$.calc`, `$.sync`), this will cause the function to be called again any time the value changes.
+Returns the current data's value. If within a syncable function (i.e. `to`, `watch`, `$.calc`, `$.sync`), this will cause the function to be called again any time the value changes.
 
     const flag = $(true);
     $.sync(() => console.log(flag.get() ? 'Flag is set' : 'Flag not set'));
@@ -46,29 +46,16 @@ Calls function each time the value is changed
     //   Count: 1
     //   Count: 2
 
-#### map
-Maps one data to another
+#### to
+Converts one data to another
 
     const n = $(2);
-    const squared = n.map(n => n * n);
+    const squared = n.to(n => n * n);
     squared.watch(nn => console.log(`Square: ${nn}`));
     n.set(3);
     // Outputs
     //   Square: 4
     //   Square: 9
-
-#### mapIf
-Maps based on a condition, otherwise returns a the data value of the original
-
-    const sort = $(false);
-    const items = $(['Omar', 'Daniel', 'Elle']);
-    const displayableItems = items
-        .mapIf(sort, items => [...items].sort());
-    displayableItems.watch(items => console.log(items));
-    sort.set(true);
-    // Outputs
-    //   ["Omar", "Daniel", "Elle"]
-    //   ["Daniel", "Elle", "Omar"]
 
 ### Functions
 These are functions on `$`
@@ -76,8 +63,8 @@ These are functions on `$`
 #### $.ensure
 Ensures that a value is a data object
 
-    const squared = n => $.ensure(n).map(n => n * n);
-    const a = squared(2);
+    const squared = n => $.ensure(n).to(n => n * n);
+    const a = squared(2);.
     const b = squared(a);
     console.log(a.get(), b.get());  // Output: 4, 16
 
@@ -99,7 +86,7 @@ Converts an array of values that may or may not be data objects to an array of d
 Resolves each data item in an array
 
     const a = $(2);
-    const b = a.map(a => a + 1);
+    const b = a.to(a => a + 1);
     const c = $.calc(() => a.get() * b.get());
     console.log($.getAll([a, b, c]));  // Outputs: [2, 3, 6]
 

@@ -1,10 +1,12 @@
 var $ = (function () {
   'use strict';
 
-  const sync = fn => new Sync(fn)._update();
   const calc = fn => {
-    const data = new Data(undefined);
-    sync(() => data._set(fn()));
+    const data = new Data();
+    sync(() => {
+      data._ = fn();
+      notifySyncs(data);
+    });
     return data;
   };
   const ensure = data => {
@@ -14,41 +16,38 @@ var $ = (function () {
 
   const syncStack = [];
 
-  class Sync {
-    constructor(fn) {
-      this.fn = fn;
-      this.deps = [];
-    }
-    _update() {
-      this.deps.splice(0, this.deps.length).forEach(data => {
-        data._syncs.splice(data._syncs.indexOf(this), 1);
+  const sync = (perform, state) => {
+    const deps = [];
+    const update = () => {
+      if (state && !state.active) return;
+      deps.splice(0, deps.length).forEach(data => {
+        data._obs.splice(data._obs.indexOf(update), 1);
       });
-      syncStack.unshift(this.deps);
-      this.fn();
-      syncStack.shift().forEach(data => data._syncs.push(this));
-    }
-  }
+      syncStack.unshift(deps);
+      perform();
+      syncStack.shift().forEach(data => data._obs.push(update));
+    };
+    update();
+  };
+
+  const notifySyncs = data => {
+    [...data._obs].forEach(sync => sync());
+  };
+
 
   class Data {
-    constructor(data) {
-      this._data = data;
-      this._syncs = [];
+    constructor(value) {
+      this._ = value;
+      this._obs = [];
     }
     get(sync = true) {
       if (sync && syncStack[0] && !syncStack[0].includes(this)) {
         syncStack[0].push(this);
       }
-      return this._data;
+      return this._;
     }
-    map(fn) {
+    to(fn) {
       return calc(() => fn(this.get()));
-    }
-    mapIf(test, fn) {
-      test = ensure(test);
-      return calc(() => {
-        const data = this.get();
-        return test.get() ? fn(data) : data;
-      });
     }
     watch(fn) {
       sync(() => {
@@ -56,25 +55,19 @@ var $ = (function () {
       });
       return this;  // Allows for chaining
     }
-    _set(data) {
-      this._data = data;
-      this._modified();
-    }
-    _modified() {
-      [...this._syncs].forEach(sync => sync._update());
-    }
   }
 
   class ModifiableData extends Data {
     constructor(data) {
       super(data);
     }
-    set(data) {
-      this._set(data);
+    set(value) {
+      this._ = value;
+      notifySyncs(this);
     }
     modify(fn) {
-      fn(this._data);
-      this._modified();
+      fn(this._);
+      notifySyncs(this);
     }
   }
 
