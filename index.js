@@ -67,14 +67,14 @@ class ModifiableData extends Data {
   }
 }
 
-const $d = (data, freeze = false) =>
+const $ = (data, freeze = false) =>
     freeze === true ? new Data(data) : new ModifiableData(data);
 
-Object.assign($d, {
+Object.assign($, {
   ensure, calc, sync,
   getAll: datas => datas.map(data => data.get()),
   ensureAll: datas => datas.map(data => ensure(data)),
   isData: v => v instanceof Data
 });
 
-module.exports = $d;
+module.exports = $;
