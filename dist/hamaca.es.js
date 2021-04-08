@@ -53,13 +53,12 @@ var $ = (function () {
       sync(() => {
         fn(this.get());
       });
-      return this;  // Allows for chaining
     }
   }
 
   class ModifiableData extends Data {
-    constructor(data) {
-      super(data);
+    constructor(value) {
+      super(value);
     }
     set(value) {
       this._ = value;
@@ -71,17 +70,17 @@ var $ = (function () {
     }
   }
 
-  const $d = (data, freeze = false) =>
+  const $ = (data, freeze = false) =>
       freeze === true ? new Data(data) : new ModifiableData(data);
 
-  Object.assign($d, {
+  Object.assign($, {
     ensure, calc, sync,
     getAll: datas => datas.map(data => data.get()),
     ensureAll: datas => datas.map(data => ensure(data)),
     isData: v => v instanceof Data
   });
 
-  var hamaca = $d;
+  var hamaca = $;
 
   return hamaca;
 

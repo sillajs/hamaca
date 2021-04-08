@@ -211,7 +211,6 @@ var $ = (function () {
         sync(function () {
           fn(_this2.get());
         });
-        return this; // Allows for chaining
       }
     }]);
 
@@ -223,10 +222,10 @@ var $ = (function () {
 
     var _super = _createSuper(ModifiableData);
 
-    function ModifiableData(data) {
+    function ModifiableData(value) {
       _classCallCheck(this, ModifiableData);
 
-      return _super.call(this, data);
+      return _super.call(this, value);
     }
 
     _createClass(ModifiableData, [{
@@ -246,12 +245,12 @@ var $ = (function () {
     return ModifiableData;
   }(Data);
 
-  var $d = function $d(data) {
+  var $ = function $(data) {
     var freeze = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
     return freeze === true ? new Data(data) : new ModifiableData(data);
   };
 
-  Object.assign($d, {
+  Object.assign($, {
     ensure: ensure,
     calc: calc,
     sync: sync,
@@ -269,7 +268,7 @@ var $ = (function () {
       return v instanceof Data;
     }
   });
-  var hamaca = $d;
+  var hamaca = $;
 
   return hamaca;
 
