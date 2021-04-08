@@ -28,6 +28,7 @@ var $_ = (function () {
   }
   Sync.stack = [];
 
+
   class Data {
     constructor(data) {
       this._data = data;
@@ -83,7 +84,8 @@ var $_ = (function () {
   Object.assign($d, {
     ensure, calc, sync,
     getAll: datas => datas.map(data => data.get()),
-    ensureAll: datas => datas.map(data => ensure(data))
+    ensureAll: datas => datas.map(data => ensure(data)),
+    isData: v => v instanceof Data
   });
 
   var hamaca = $d;

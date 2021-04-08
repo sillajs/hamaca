@@ -296,6 +296,9 @@ var $_ = (function () {
       return datas.map(function (data) {
         return ensure(data);
       });
+    },
+    isData: function isData(v) {
+      return v instanceof Data;
     }
   });
   var hamaca = $d;

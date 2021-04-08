@@ -80,7 +80,8 @@ const $d = (data, freeze = false) =>
 Object.assign($d, {
   ensure, calc, sync,
   getAll: datas => datas.map(data => data.get()),
-  ensureAll: datas => datas.map(data => ensure(data))
+  ensureAll: datas => datas.map(data => ensure(data)),
+  isData: v => v instanceof Data
 });
 
 module.exports = $d;
