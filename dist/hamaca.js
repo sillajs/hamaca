@@ -1,4 +1,4 @@
-var $_ = (function () {
+var $ = (function () {
   'use strict';
 
   function _classCallCheck(instance, Constructor) {
@@ -136,7 +136,7 @@ var $_ = (function () {
   }
 
   var sync = function sync(fn) {
-    return new Sync(fn).update();
+    return new Sync(fn)._update();
   };
 
   var calc = function calc(fn) {
@@ -152,6 +152,8 @@ var $_ = (function () {
     return new Data(data);
   };
 
+  var syncStack = [];
+
   var Sync = /*#__PURE__*/function () {
     function Sync(fn) {
       _classCallCheck(this, Sync);
@@ -161,16 +163,16 @@ var $_ = (function () {
     }
 
     _createClass(Sync, [{
-      key: "update",
-      value: function update() {
+      key: "_update",
+      value: function _update() {
         var _this = this;
 
         this.deps.splice(0, this.deps.length).forEach(function (data) {
           data._syncs.splice(data._syncs.indexOf(_this), 1);
         });
-        Sync.stack.unshift(this.deps);
+        syncStack.unshift(this.deps);
         this.fn();
-        Sync.stack.shift().forEach(function (data) {
+        syncStack.shift().forEach(function (data) {
           return data._syncs.push(_this);
         });
       }
@@ -178,8 +180,6 @@ var $_ = (function () {
 
     return Sync;
   }();
-
-  Sync.stack = [];
 
   var Data = /*#__PURE__*/function () {
     function Data(data) {
@@ -194,8 +194,8 @@ var $_ = (function () {
       value: function get() {
         var sync = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
 
-        if (sync && Sync.stack[0] && !Sync.stack[0].includes(this)) {
-          Sync.stack[0].push(this);
+        if (sync && syncStack[0] && !syncStack[0].includes(this)) {
+          syncStack[0].push(this);
         }
 
         return this._data;
@@ -242,7 +242,7 @@ var $_ = (function () {
       key: "_modified",
       value: function _modified() {
         _toConsumableArray(this._syncs).forEach(function (sync) {
-          return sync.update();
+          return sync._update();
         });
       }
     }]);

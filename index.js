@@ -1,4 +1,4 @@
-const sync = fn => new Sync(fn).update();
+const sync = fn => new Sync(fn)._update();
 const calc = fn => {
   const data = new Data(undefined);
   sync(() => data._set(fn()));
@@ -9,21 +9,22 @@ const ensure = data => {
   return new Data(data);
 }
 
+const syncStack = [];
+
 class Sync {
   constructor(fn) {
     this.fn = fn;
     this.deps = [];
   }
-  update() {
+  _update() {
     this.deps.splice(0, this.deps.length).forEach(data => {
       data._syncs.splice(data._syncs.indexOf(this), 1);
     });
-    Sync.stack.unshift(this.deps);
+    syncStack.unshift(this.deps);
     this.fn();
-    Sync.stack.shift().forEach(data => data._syncs.push(this));
+    syncStack.shift().forEach(data => data._syncs.push(this));
   }
 }
-Sync.stack = [];
 
 class Data {
   constructor(data) {
@@ -31,8 +32,8 @@ class Data {
     this._syncs = [];
   }
   get(sync = true) {
-    if (sync && Sync.stack[0] && !Sync.stack[0].includes(this)) {
-      Sync.stack[0].push(this);
+    if (sync && syncStack[0] && !syncStack[0].includes(this)) {
+      syncStack[0].push(this);
     }
     return this._data;
   }
@@ -57,7 +58,7 @@ class Data {
     this._modified();
   }
   _modified() {
-    [...this._syncs].forEach(sync => sync.update());
+    [...this._syncs].forEach(sync => sync._update());
   }
 }
 

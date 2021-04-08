@@ -2,7 +2,14 @@ import babel from '@rollup/plugin-babel';
 import commonjs from '@rollup/plugin-commonjs';
 import {terser} from 'rollup-plugin-terser';
 
-const global = '$_';
+const global = '$';
+const terserOptions = {
+  mangle: {
+    properties: {
+      regex: /^(_syncs|_update)$/,
+    },
+  },
+};
 
 export default [
   {
@@ -17,7 +24,7 @@ export default [
         file: './dist/hamaca.min.js',
         format: 'iife',
         name: global,
-        plugins: [terser()]
+        plugins: [terser(terserOptions)]
       }
     ],
     plugins: [
@@ -37,12 +44,12 @@ export default [
         file: './dist/hamaca.es.min.js',
         format: 'iife',
         name: global,
-        plugins: [terser()]
+        plugins: [terser(terserOptions)]
       },
       {
         file: './dist/hamaca.mjs.js',
         format: 'es',
-        plugins: [terser()]
+        plugins: [terser(terserOptions)]
       }
     ],
     plugins: [
