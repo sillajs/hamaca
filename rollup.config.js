@@ -3,13 +3,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import {terser} from 'rollup-plugin-terser';
 
 const global = '$';
-const terserOptions = {
-  mangle: {
-    properties: {
-      regex: /^(_syncs|_update)$/,
-    },
-  },
-};
+const terserOptions = {};
 
 export default [
   {
