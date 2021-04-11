@@ -2,12 +2,11 @@ const $ = require('../index');
 
 const clone = value => {
   if (typeof value !== 'object' || value === null) return value;
-  if (Array.isArray(value)) return value.map(clone);
-  return Object.assign({}, value);
+  return JSON.parse(JSON.stringify(value));
 }
-const record = data => {
+const record = (data, map = v => v) => {
   const values = [];
-  data.watch(value => values.push(clone(value)));
+  data.watch(value => values.push(clone(map(value))));
   return values;
 }
 
@@ -74,100 +73,6 @@ describe('to', () => {
     expect(squaredPlus1.get()).toBe(10);
     n.set(4);
     expect(squaredPlus1.get()).toBe(17);
-  });
-
-  it('updates original object while modifying converted data', () => {
-    const n = $(5);
-    const s = n.to(n => n*n, {from: r => Math.sqrt(r)});
-    const nValues = record(n);
-    const sValues = record(s);
-    s.set(81);
-    expect(nValues).toEqual([5, 9]);
-    expect(sValues).toEqual([25, 81]);
-  });
-});
-
-describe('child', () => {
-  it('updates obj when child value changes', () => {
-    const obj = $({text: 'Hello, World'});
-    const text = obj.child('text');
-    const objValues = record(obj);
-    const textValues = record(text);
-    text.set('Hello, Galaxy');
-    expect(objValues).toEqual([{text: 'Hello, World'}, {text: 'Hello, Galaxy'}]);
-    expect(textValues).toEqual(['Hello, World', 'Hello, Galaxy']);
-  });
-
-  it('updates child when obj value changes', () => {
-    const obj = $({text: 'Hello, World'});
-    const text = obj.child('text');
-    const objValues = record(obj);
-    const textValues = record(text);
-    obj.set({text: 'Hello, Galaxy'});
-    expect(objValues).toEqual([{text: 'Hello, World'}, {text: 'Hello, Galaxy'}]);
-    expect(textValues).toEqual(['Hello, World', 'Hello, Galaxy']);
-  });
-
-  it('does not update sibling', () => {
-    const obj = $({a: true, b: false});
-    const a = obj.child('a');
-    const b = obj.child('b');
-    const [vObj, va, vb] = [obj, a, b].map(record);
-    a.set(false);
-    expect(vObj).toEqual([{a: true, b: false}, {a: false, b: false}]);
-    expect(va).toEqual([true, false]);
-    expect(vb).toEqual([false]);
-  });
-
-  it('does not update aunt', () => {
-    const obj = $({aunt: 'aunt', parent: {child: 'child'}});
-    const aunt = obj.child('aunt');
-    const parent = obj.child('parent');
-    const child = parent.child('child');
-    const [vAunt, vParent, vChild] = [aunt, parent, child].map(record);
-    child.set('CHILD');
-    expect(vParent).toEqual([{child: 'child'}, {child: 'CHILD'}]);
-    expect(vAunt).toEqual(['aunt']);
-    expect(vChild).toEqual(['child', 'CHILD']);
-  });
-
-  it('updates child when parent changes', () => {
-    const obj = $({parent: {child: 'child'}});
-    const parent = obj.child('parent');
-    const child = parent.child('child');
-    const [vParent, vChild] = [parent, child].map(record);
-    parent.set({child: 'CHILD'});
-    expect(vParent).toEqual([{child: 'child'}, {child: 'CHILD'}]);
-    expect(vChild).toEqual(['child', 'CHILD']);
-  });
-
-  it('updates both children if the same', () => {
-    const obj = $({a: true, b: false});
-    const a = obj.child('a');
-    const b = obj.child('a');
-    const [vObj, va, vb] = [obj, a, b].map(record);
-    a.set(false);
-    expect(vObj).toEqual([{a: true, b: false}, {a: false, b: false}]);
-    expect(va).toEqual([true, false]);
-    expect(vb).toEqual([true, false]);
-  });
-
-  it('updates when prop name changes', () => {
-    const obj = $({a: true, b: false});
-    const prop = $('a');
-    const child = obj.child(prop);
-    const values = record(child);
-    prop.set('b');
-    expect(values).toEqual([true, false]);
-  });
-
-  it('suppresses update when prop changes', () => {
-    const obj = $({a: true, b: false});
-    const prop = $('a');
-    const child = obj.child(prop, false);
-    const values = record(child);
-    prop.set('b');
-    expect(values).toEqual([true]);
   });
 });
 

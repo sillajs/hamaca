@@ -2,16 +2,16 @@ var $ = (function () {
   'use strict';
 
   const isData = value => value instanceof Data;
-  const ensure = value => isData(value) ? value : new Data(value);
+  const ensure = (value, delegate) => isData(value) ? value : new Data(value, delegate);
   const get = value => isData(value) ? value.get() : value;
   const getAll =  datas => datas.map(data => data.get());
   const ensureAll = datas => datas.map(data => ensure(data));
-  const calc = (fn, mutate, state) => {
-    const data = new Data(undefined, mutate);
+  const calc = (fn, delegate, suppress) => {
+    const data = new Data(undefined, delegate);
     sync(() => {
       data[VALUE] = fn();
       notifySyncs(data);
-    }, state);
+    }, suppress);
     return data;
   };
 
@@ -20,7 +20,8 @@ var $ = (function () {
   const sync = (perform, suppress) => {
     const deps = [];
     const clear = () => {
-      deps.splice(0, deps.length).forEach(data => {
+    const old = deps.splice(0, deps.length);
+    old.forEach(data => {
         data[SYNCS].splice(data[SYNCS].indexOf(update), 1);
       });
     };
@@ -35,27 +36,35 @@ var $ = (function () {
     return({cancel: clear});
   };
 
-  const CHILDREN = Symbol();
   const VALUE = Symbol();
   const SYNCS = Symbol();
-  let CHILD_SUPPRESS = false;
-  const CHILD_SUPPRESS_FN = () => CHILD_SUPPRESS;
-  function SET_DATA(value) {
+  const DELEGATE = Symbol();
+
+  function SET(value) {
+    this[DELEGATE].willSet?.(value, this);
     this[VALUE] = value;
+    this[DELEGATE].didSet?.(value, this);
     notifySyncs(this);
   }
-  function MODIFY_DATA(modifier) {
+  function MODIFY(modifier) {
     const result = modifier(this[VALUE]);
     this.set(this[VALUE]);
     return result;
   }
+
   class Data {
-    constructor(value, mutate) {
+    constructor(value, delegate = {}) {
       this[VALUE] = value;
       this[SYNCS] = [];
-      if (!mutate) return;
-      this.set = mutate;
-      this.modify = MODIFY_DATA;
+      this[DELEGATE] = delegate;
+      if (delegate.mutable ?? true) {
+        this.set = SET;
+        this.modify = MODIFY;
+      }
+      delegate.setup?.(this);
+    }
+    toJSON() {
+      return {value: this[VALUE]};
     }
     get(bind = true) {
       if (bind && syncStack[0] && !syncStack[0].includes(this)) {
@@ -63,41 +72,20 @@ var $ = (function () {
       }
       return this[VALUE];
     }
-    to(to, opt) {
-      const set = this.set && opt?.from && (value => this.set(opt.from(value)));
-      return calc(() => to(this.get()), set);
-    }
-    child(prop, updateOnPropChange = true) {
-      if (isData(prop)) {
-        const update = () => this.child(prop.get(updateOnPropChange)).get();
-        const set = this.set && (value => {
-          this.child(prop.get(false)).set(value);
-        });
-        return calc(update, set, CHILD_SUPPRESS_FN);
-      }
 
-      if (!this[CHILDREN]) this[CHILDREN] = {};
-      if (!this[CHILDREN][prop]) {
-        const update = () => this.get()?.[prop];
-        const set = this.set && (value => {
-          const previous = CHILD_SUPPRESS;
-          CHILD_SUPPRESS = true;
-          this.modify(obj => obj[prop] = value);
-          child[VALUE] = value;
-          CHILD_SUPPRESS = previous;
-          notifySyncs(child);
-        });
-        const child = calc(update, set, CHILD_SUPPRESS_FN);
-        this[CHILDREN][prop] = child;
-      }
-      return this[CHILDREN][prop];
+    to(to, suppress) {
+      const delegate = this[DELEGATE].convertedDelegate?.(this);
+      const converted = calc(() => to(this.get()), delegate, suppress);
+      this[DELEGATE].didConvert?.(this, converted);
+      return converted;
     }
+
     watch(fn) {
       return sync(() => fn(this.get()));
     }
   }
 
-  const create = (value, mutatable = true) => new Data(value, mutatable && SET_DATA);
+  const create = (value, delegate) => new Data(value, delegate);
   var hamaca = Object.assign(create,
       {ensure, calc, isData, sync, getAll, ensureAll, get});
 

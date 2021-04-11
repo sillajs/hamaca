@@ -60,8 +60,8 @@ var $ = (function () {
     return value instanceof Data;
   };
 
-  var ensure = function ensure(value) {
-    return isData(value) ? value : new Data(value);
+  var ensure = function ensure(value, delegate) {
+    return isData(value) ? value : new Data(value, delegate);
   };
 
   var get = function get(value) {
@@ -80,12 +80,12 @@ var $ = (function () {
     });
   };
 
-  var calc = function calc(fn, mutate, state) {
-    var data = new Data(undefined, mutate);
+  var calc = function calc(fn, delegate, suppress) {
+    var data = new Data(undefined, delegate);
     sync(function () {
       data[VALUE] = fn();
       notifySyncs(data);
-    }, state);
+    }, suppress);
     return data;
   };
 
@@ -101,7 +101,8 @@ var $ = (function () {
     var deps = [];
 
     var clear = function clear() {
-      deps.splice(0, deps.length).forEach(function (data) {
+      var old = deps.splice(0, deps.length);
+      old.forEach(function (data) {
         data[SYNCS].splice(data[SYNCS].indexOf(update), 1);
       });
     };
@@ -122,38 +123,53 @@ var $ = (function () {
     };
   };
 
-  var CHILDREN = Symbol();
   var VALUE = Symbol();
   var SYNCS = Symbol();
-  var CHILD_SUPPRESS = false;
+  var DELEGATE = Symbol();
 
-  var CHILD_SUPPRESS_FN = function CHILD_SUPPRESS_FN() {
-    return CHILD_SUPPRESS;
-  };
+  function SET(value) {
+    var _this$DELEGATE$willSe, _this$DELEGATE, _this$DELEGATE$didSet, _this$DELEGATE2;
 
-  function SET_DATA(value) {
+    (_this$DELEGATE$willSe = (_this$DELEGATE = this[DELEGATE]).willSet) === null || _this$DELEGATE$willSe === void 0 ? void 0 : _this$DELEGATE$willSe.call(_this$DELEGATE, value, this);
     this[VALUE] = value;
+    (_this$DELEGATE$didSet = (_this$DELEGATE2 = this[DELEGATE]).didSet) === null || _this$DELEGATE$didSet === void 0 ? void 0 : _this$DELEGATE$didSet.call(_this$DELEGATE2, value, this);
     notifySyncs(this);
   }
 
-  function MODIFY_DATA(modifier) {
+  function MODIFY(modifier) {
     var result = modifier(this[VALUE]);
     this.set(this[VALUE]);
     return result;
   }
 
   var Data = /*#__PURE__*/function () {
-    function Data(value, mutate) {
+    function Data(value) {
+      var _delegate$mutable, _delegate$setup;
+
+      var delegate = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
       _classCallCheck(this, Data);
 
       this[VALUE] = value;
       this[SYNCS] = [];
-      if (!mutate) return;
-      this.set = mutate;
-      this.modify = MODIFY_DATA;
+      this[DELEGATE] = delegate;
+
+      if ((_delegate$mutable = delegate.mutable) !== null && _delegate$mutable !== void 0 ? _delegate$mutable : true) {
+        this.set = SET;
+        this.modify = MODIFY;
+      }
+
+      (_delegate$setup = delegate.setup) === null || _delegate$setup === void 0 ? void 0 : _delegate$setup.call(delegate, this);
     }
 
     _createClass(Data, [{
+      key: "toJSON",
+      value: function toJSON() {
+        return {
+          value: this[VALUE]
+        };
+      }
+    }, {
       key: "get",
       value: function get() {
         var bind = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : true;
@@ -166,71 +182,27 @@ var $ = (function () {
       }
     }, {
       key: "to",
-      value: function to(_to, opt) {
-        var _this = this;
+      value: function to(_to, suppress) {
+        var _this$DELEGATE$conver,
+            _this$DELEGATE3,
+            _this = this,
+            _this$DELEGATE$didCon,
+            _this$DELEGATE4;
 
-        var set = this.set && (opt === null || opt === void 0 ? void 0 : opt.from) && function (value) {
-          return _this.set(opt.from(value));
-        };
-
-        return calc(function () {
+        var delegate = (_this$DELEGATE$conver = (_this$DELEGATE3 = this[DELEGATE]).convertedDelegate) === null || _this$DELEGATE$conver === void 0 ? void 0 : _this$DELEGATE$conver.call(_this$DELEGATE3, this);
+        var converted = calc(function () {
           return _to(_this.get());
-        }, set);
-      }
-    }, {
-      key: "child",
-      value: function child(prop) {
-        var _this2 = this;
-
-        var updateOnPropChange = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-
-        if (isData(prop)) {
-          var update = function update() {
-            return _this2.child(prop.get(updateOnPropChange)).get();
-          };
-
-          var set = this.set && function (value) {
-            _this2.child(prop.get(false)).set(value);
-          };
-
-          return calc(update, set, CHILD_SUPPRESS_FN);
-        }
-
-        if (!this[CHILDREN]) this[CHILDREN] = {};
-
-        if (!this[CHILDREN][prop]) {
-          var _update = function _update() {
-            var _this2$get;
-
-            return (_this2$get = _this2.get()) === null || _this2$get === void 0 ? void 0 : _this2$get[prop];
-          };
-
-          var _set = this.set && function (value) {
-            var previous = CHILD_SUPPRESS;
-            CHILD_SUPPRESS = true;
-
-            _this2.modify(function (obj) {
-              return obj[prop] = value;
-            });
-
-            child[VALUE] = value;
-            CHILD_SUPPRESS = previous;
-            notifySyncs(child);
-          };
-
-          var child = calc(_update, _set, CHILD_SUPPRESS_FN);
-          this[CHILDREN][prop] = child;
-        }
-
-        return this[CHILDREN][prop];
+        }, delegate, suppress);
+        (_this$DELEGATE$didCon = (_this$DELEGATE4 = this[DELEGATE]).didConvert) === null || _this$DELEGATE$didCon === void 0 ? void 0 : _this$DELEGATE$didCon.call(_this$DELEGATE4, this, converted);
+        return converted;
       }
     }, {
       key: "watch",
       value: function watch(fn) {
-        var _this3 = this;
+        var _this2 = this;
 
         return sync(function () {
-          return fn(_this3.get());
+          return fn(_this2.get());
         });
       }
     }]);
@@ -238,9 +210,8 @@ var $ = (function () {
     return Data;
   }();
 
-  var create = function create(value) {
-    var mutatable = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
-    return new Data(value, mutatable && SET_DATA);
+  var create = function create(value, delegate) {
+    return new Data(value, delegate);
   };
 
   var hamaca = Object.assign(create, {
